@@ -18,6 +18,7 @@ The ACS deployment in the Layered Zero Trust pattern is implemented using:
 - **Helm Charts**: Two separate charts for Central and Secured Cluster
 - **Operator-based**: Uses Red Hat's RHACS Operator
 - **Vault Integration**: Secrets stored in HashiCorp Vault
+- **Keycloak SSO**: OIDC authentication (enabled by default)
 
 ## Architecture Components
 
@@ -51,12 +52,12 @@ The ACS deployment in the Layered Zero Trust pattern is implemented using:
 
 ### Phase 1: Operator Installation (Managed by Pattern Framework)
 
-**When**: During initial pattern deployment
+**When**: During initial pattern deployment  
 **Configuration File**: `values-hub.yaml`
 
 ### Phase 2: ACS Central Application Creation
 
-**When**: After operator is ready
+**When**: After operator is ready  
 **Helm Chart**: `charts/acs-central/`
 
 ### Phase 3: Resource Deployment (Ordered by Sync Waves)
@@ -67,14 +68,14 @@ The ACS deployment in the Layered Zero Trust pattern is implemented using:
 
 ##### Option A: External Secret (Default - Used in Pattern)
 
-**File**: `central-htpasswd-external-secret.yaml`
-**Purpose**: Fetch admin password from Vault
-**Creates**: Secret `central-htpasswd` with key `password`
-**Why**: Central needs this secret before deployment
+**File**: `central-htpasswd-external-secret.yaml`  
+**Purpose**: Fetch admin password from Vault  
+**Creates**: Secret `central-htpasswd` with key `password`  
+**Why**: Central needs this secret before deployment  
 
 ##### Option B: Static Secret (Alternative)
 
-**File**: `admin-password-secret.yaml`
+**File**: `admin-password-secret.yaml`  
 **Condition**: Only if `useExternalSecret: false`
 
 #### **Sync Wave 6: Password Hash Generation**
@@ -91,14 +92,23 @@ The ACS deployment in the Layered Zero Trust pattern is implemented using:
 
 #### **Sync Wave 12: Cluster Init Bundle Creation**
 
-**Purpose**: Generate cluster init bundle for Secured Cluster authentication
+**Purpose**: Generate cluster init bundle for Secured Cluster authentication  
 **Result**: Secured Cluster components can authenticate to Central
 
-#### **Sync Wave 13: Authentication Provider Setup (Optional)**
+#### **Sync Wave 13: OIDC Authentication Provider Setup**
 
-**Condition**: Only if `integration.keycloak.enabled: true`
-**Purpose**: Configure Keycloak authentication
-**Result**: Users can log in via OpenShift OAuth instead of htpasswd
+**Status**: Enabled by default  
+**Condition**: Default `integration.keycloak.enabled: true`  
+**Purpose**: Configure Keycloak authentication  
+**Job**: `create-auth-provider`  
+**Result**: Users can log in via OpenShift OAuth instead of htpasswd  
+
+**What it does**:  
+
+- Waits for ACS Central to be ready (max 30 retries, 10s interval)
+- Creates OIDC auth provider named "OIDC"
+- Configures OIDC settings (Issuer, Client ID, Client Secret, Callback URL)
+- Maps Keycloak user claims to ACS attributes
 
 #### **Sync Wave 15: Secured Cluster Deployment**
 
