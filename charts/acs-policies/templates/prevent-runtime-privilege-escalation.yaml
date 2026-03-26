@@ -34,23 +34,31 @@ spec:
   # Exclude system components that legitimately need privilege
   exclusions:
     - name: "OpenShift System Namespaces"
+      image: {}
       deployment:
         scope:
+          label: {}
           namespace: "openshift-.*"
 
     - name: "Kubernetes System Namespaces"
+      image: {}
       deployment:
         scope:
+          label: {}
           namespace: "kube-system|kube-public|kube-node-lease"
 
     - name: "ACS/RHACS"
+      image: {}
       deployment:
         scope:
+          label: {}
           namespace: "stackrox|rhacs-operator"
 
     - name: "Default Namespace"
+      image: {}
       deployment:
         scope:
+          label: {}
           namespace: "default"
 
 
@@ -60,7 +68,6 @@ spec:
         # Detect common privilege escalation commands
         - fieldName: "Process Name"
           booleanOperator: "OR"
-          negate: false
           values:
             - value: "sudo"
             - value: "su"

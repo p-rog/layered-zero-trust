@@ -17,7 +17,8 @@ spec:
   severity: MEDIUM_SEVERITY
 
   scope:
-    - namespace: "qtodo"
+    - label: {}
+      namespace: "qtodo"
 
   policySections:
     - sectionName: Alert on missing egress Network Policy

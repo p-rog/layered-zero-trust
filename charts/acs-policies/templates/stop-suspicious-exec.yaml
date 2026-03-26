@@ -24,7 +24,6 @@ spec:
       policyGroups:
         - fieldName: "Process Name"
           booleanOperator: "OR"
-          negate: false
           values:
             - value: "ncat"
             - value: "nmap"
