@@ -71,6 +71,88 @@ If we want to save some space, we can add these overrides to the `noobaa-mcg` co
           value: 25Gi
 ```
 
+## Accessing Credentials for Testing
+
+All sensitive credentials in this pattern are generated automatically and stored in HashiCorp Vault during deployment. There are no static default passwords. This section explains how to retrieve credentials for testing and exploration.
+
+### Retrieve the Vault Root Token
+
+The Vault initialization data, including the root token, is stored in a Kubernetes Secret in the `imperative` namespace. Run the following command to extract the root token:
+
+```shell
+oc extract -n imperative secret/vaultkeys --to=- --keys=vault_data_json 2>/dev/null \
+  | jq -r ".root_token"
+```
+
+Save this value — you will need it to authenticate to Vault in the steps below.
+
+### Access the Vault Web UI
+
+Get the Vault route URL and open it in a browser:
+
+```shell
+echo "https://$(oc get route -n vault vault -o jsonpath='{.spec.host}')"
+```
+
+On the login screen select **Token** as the authentication method and paste the root token retrieved above.
+
+### Access Vault via CLI (`oc exec`)
+
+You can query Vault directly from inside the `vault-0` pod without installing any local tooling. First export the token into a shell variable:
+
+```shell
+VAULT_TOKEN=$(oc extract -n imperative secret/vaultkeys --to=- --keys=vault_data_json 2>/dev/null \
+  | jq -r ".root_token")
+```
+
+Then use `oc exec` to run Vault commands. For example, to list the top-level secret paths:
+
+```shell
+oc exec -n vault vault-0 -- env VAULT_TOKEN="$VAULT_TOKEN" vault kv list secret/
+```
+
+To read a specific secret, use `vault kv get`. For example, to read the Keycloak user credentials:
+
+```shell
+oc exec -n vault vault-0 -- env VAULT_TOKEN="$VAULT_TOKEN" \
+  vault kv get secret/hub/infra/users/keycloak-users
+```
+
+### Key Secret Paths
+
+Secrets are organized by component under the `secret/` KV mount. The table below lists the paths relevant to testing the default pattern deployment.
+
+| Path | Contents |
+|---|---|
+| `secret/apps/qtodo/qtodo-db` | `admin-password`, `db-password` — PostgreSQL credentials for the qtodo app |
+| `secret/apps/qtodo/qtodo-truststore` | `truststore-password` — Keycloak TLS truststore password for qtodo |
+| `secret/hub/infra/keycloak/keycloak` | `admin-password`, `db-password` — Keycloak admin and database credentials |
+| `secret/hub/infra/users/keycloak-users` | `qtodo-admin-password`, `qtodo-user1-password`, `rhtpa-user-password`, `rhtas-user-password` — application user passwords provisioned in Keycloak |
+| `secret/hub/infra/acs/acs-central` | `admin-password` — ACS Central admin password |
+| `secret/hub/infra/quay/quay-users` | `quay-admin-password`, `quay-user-password` — Quay registry credentials _(optional component)_ |
+| `secret/hub/infra/rhtpa/rhtpa-db` | `db-password` — RHTPA PostgreSQL password _(optional component)_ |
+| `secret/hub/infra/rhtpa/rhtpa-oidc-cli` | `client-secret` — RHTPA Keycloak OIDC client secret _(optional component)_ |
+
+### Shortcut: Reading ESO-Synced Secrets from Kubernetes
+
+Several secrets are automatically synchronized from Vault to Kubernetes Secrets by the External Secrets Operator (ESO). These can be read directly without going through Vault and are useful when you just need a quick credential lookup.
+
+Keycloak user passwords (synced to `keycloak-system`):
+
+```shell
+oc get secret -n keycloak-system keycloak-users -o json \
+  | jq -r '.data | map_values(@base64d)'
+```
+
+ACS Central admin password (synced to `stackrox`):
+
+```shell
+oc get secret -n stackrox central-htpasswd -o jsonpath='{.data.password}' | base64 -d
+```
+
+> [!NOTE]
+> The root token grants unrestricted access to all secrets in Vault. Use it only for development and testing. For day-to-day exploration of a specific component's credentials, prefer the narrower ESO-synced Kubernetes Secrets shown above.
+
 ## Analytics Tracking
 
 Metrics are captured to track the use of any of the Validated Patterns. It is important than an accurate depiction of pattern use by customers, partners and those from the community are captured. Red Hat associates should not factor into this calculation and support is available in the Validated Patterns framework to opt out of being captured.

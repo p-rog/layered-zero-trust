@@ -4,6 +4,22 @@ This use case outlines the process of building, signing, and verifying artifacts
 
 In this project, we used the [qtodo](https://github.com/validatedpatterns-demos/qtodo/) application as a sample to show how to build a secure supply chain in a software development factory.
 
+> [!IMPORTANT]
+> The Secure Supply Chain use case depends on **optional components** that are disabled by default. Before following this guide, uncomment the following sections in `values-hub.yaml` and redeploy the pattern with `./pattern.sh make install`:
+>
+> * `subscriptions.openshift-pipelines` — Red Hat OpenShift Pipelines operator
+> * `namespaces` entry for `openshift-pipelines`
+> * `applications.supply-chain` — the supply chain Tekton pipeline
+> * `applications.trusted-artifact-signer` — RHTAS for artifact and image signing
+> * `subscriptions.rhtas-operator` and its namespace entry
+> * `applications.trusted-profile-analyzer` — RHTPA for SBOM management
+> * `subscriptions.rhtpa-operator` and its namespace entry
+> * `applications.quay-registry` — Quay image registry (or configure an external registry)
+> * `applications.noobaa-mcg` — NooBaa MCG object storage (required by Quay and RHTPA)
+> * `subscriptions.odf` and `subscriptions.quay-operator` and their namespace entries
+>
+> If you prefer to use an external image registry instead of Quay, skip the Quay and NooBaa sections and set the registry parameters in the `supply-chain` application overrides accordingly.
+
 ## Components
 
 ### Main

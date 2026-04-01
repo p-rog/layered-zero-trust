@@ -2,10 +2,10 @@
 
 One of the most common application design patterns makes use of a frontend application leveraging a database for persistent storage. Instead of traditional methods for accessing the database from the frontend application using static values stored within the application, this pattern will make use "just in time" methods for obtaining these database values from a credential store. A more detailed overview is located below:
 
-* qtodo - [Quarkus](https://quarkus.io) based frontend application. Access is protected via OIDC based authentication with users defined within an external identity store (Red Hat Build of Keycloak by default)
+* qtodo - [Quarkus](https://quarkus.io) based frontend application. Access is protected via OIDC based authentication with users defined within an external identity store ([Red Hat Build of Keycloak](https://access.redhat.com/products/red-hat-build-of-keycloak/) by default)
 * PostgreSQL - Relational database for use by the qtodo application. Credentials are generated dynamically and stored within Vault.
 * External Identity store - Users have been defined to enable access to the qtodo frontend. OIDC clients have also been created and configured within the todo application
-* HashiCorp Vault - Several features are being leveraged within this use case the external identity store
+* HashiCorp Vault - Several features are being leveraged within this use case for the external identity store
   * Secrets store - Storage of sensitive values for components including PostgreSQL and RHBK
   * JWT based authentication - Enables access using ZTWIM based identities
 * Zero Trust Workload Identity - Enables an identity to be assigned to the qtodo application to communicate with HashiCorp Vault and obtain the credentials to access the PostgreSQL database
