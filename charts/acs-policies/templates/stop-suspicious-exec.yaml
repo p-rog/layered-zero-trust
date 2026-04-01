@@ -33,5 +33,10 @@ spec:
           values:
             - value: "ncat"
             - value: "nmap"
-            - value: "curl"
-            - value: "wget"
+            - value: "nc"
+            - value: "netcat"
+            # curl and wget removed -- too broadly used by system components
+            # (router, keepalived, prometheus, build tasks) to be kill triggers.
+            # Re-enable only with tight namespace scoping and specific image exclusions.
+            # - value: "curl"
+            # - value: "wget"
