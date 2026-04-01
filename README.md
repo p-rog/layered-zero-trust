@@ -16,9 +16,9 @@ Showcases the Zero Trust capabilities across Red Hat's product portfolio in a re
 The pattern is structured in layers, each building on the one below it:
 
 * **Validated Patterns Framework** — bootstraps the cluster using OpenShift GitOps (ArgoCD) and the Validated Patterns Operator. All subsequent components are deployed and reconciled by ArgoCD.
-* **Layer 0 — Cluster Hardening** — establishes a secure cluster baseline: TLS certificate management, compliance scanning, advanced cluster management, and runtime security enforcement.
-* **Layer 1 — Identity & Secrets** — provisions workload identities (SPIFFE/SPIRE), manages secrets (Vault + ESO), and provides user authentication (Keycloak). Optionally includes a private image registry (Quay + NooBaa).
-* **Layer 2 — Workloads & Supply Chain** — deploys the demo application (qtodo) and, optionally, the full secure supply chain pipeline (RHTAS, RHTPA, OpenShift Pipelines).
+* **Layer 0 — Foundations** — establishes a secure cluster baseline: TLS certificate management, compliance scanning, advanced cluster management, and runtime security enforcement.
+* **Layer 1 — Feature Sets** — provisions workload identities (SPIFFE/SPIRE), manages secrets (Vault + ESO), and provides user authentication (Keycloak). Optionally includes a private image registry (Quay + NooBaa).
+* **Layer 2 — Mapping** — deploys the demo application (qtodo) and, optionally, the full secure supply chain pipeline (RHTAS, RHTPA, OpenShift Pipelines).
 
 See `docs/diagrams/` for logical and schematic diagrams of the pattern.
 
