@@ -19,6 +19,10 @@ spec:
   enforcementActions:
     - "KILL_POD_ENFORCEMENT"
 
+  scope:
+    - label: {}
+      namespace: "qtodo"
+
   policySections:
     - sectionName: "Suspicious Command Execution"
       policyGroups:
