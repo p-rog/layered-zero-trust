@@ -20,7 +20,9 @@ spec:
     2. Remove privileged binaries from container image
     3. Use proper RBAC and service accounts instead of privilege escalation
     4. Investigate if this indicates a security incident
-  disabled: {{ .Values.policies.preventRuntimePrivilegeEscalation.disabled | default false }}
+  {{- if .Values.policies.preventRuntimePrivilegeEscalation.disabled }}
+  disabled: true
+  {{- end }}
   categories:
     - "Security Best Practices"
     - "Zero Trust"

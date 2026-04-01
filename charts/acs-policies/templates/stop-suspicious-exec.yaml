@@ -8,7 +8,9 @@ spec:
   policyName: "Stop Suspicious Exec"
   description: "Stops a pod if a suspicious command is executed"
   remediation: "Review the pod's security context and command execution history."
-  disabled: {{ .Values.policies.stopSuspiciousExec.disabled | default false }}
+  {{- if .Values.policies.stopSuspiciousExec.disabled }}
+  disabled: true
+  {{- end }}
   categories:
     - "Security Best Practices"
     - "Zero Trust"
