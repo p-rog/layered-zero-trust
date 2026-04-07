@@ -44,7 +44,7 @@ These components are deployed by default with every ZTVP installation. Component
     * Continuously scans the cluster against CIS and other security profiles
   * [cert-manager](https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/security_and_compliance/cert-manager-operator-for-red-hat-openshift)
     * Manages TLS certificates for pattern components
-* [Red Hat Advanced Cluster Management (ACM)](https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.14)
+* [Red Hat Advanced Cluster Management (ACM)](https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes)
   * Provides a management control plane in multi-cluster scenarios
 * [Red Hat Advanced Cluster Security (ACS)](https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_security_for_kubernetes)
   * Provides runtime security policy enforcement and image vulnerability scanning
