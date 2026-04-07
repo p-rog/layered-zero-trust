@@ -30,7 +30,7 @@ Components are grouped by their origin and whether they are always deployed or o
 
 These components are part of every Validated Pattern and are not specific to ZTVP. Their Helm charts live in the [validatedpatterns](https://github.com/validatedpatterns) organization.
 
-* [OpenShift GitOps (ArgoCD)](https://docs.redhat.com/en/documentation/red_hat_openshift_gitops)
+* [OpenShift GitOps (Argo CD)](https://docs.redhat.com/en/documentation/red_hat_openshift_gitops)
   * Deploys and continuously reconciles all pattern components via GitOps
 * [Validated Patterns Operator](https://validatedpatterns.io)
   * Bootstraps the pattern, manages the Hub/Spoke lifecycle, and drives imperative jobs
