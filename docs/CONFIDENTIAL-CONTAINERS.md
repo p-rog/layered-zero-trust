@@ -98,11 +98,11 @@ in the template explaining its purpose and how to populate it.
 ./pattern.sh make install
 ```
 
-Wait for all ArgoCD apps to reach Healthy/Synced. CoCo apps (sandbox,
+Wait for all Argo CD apps to reach Healthy/Synced. CoCo apps (sandbox,
 trustee, sandbox-policies) reference CRDs created by the operators. On
-first deploy, ArgoCD may try to sync these apps before the operator
+first deploy, Argo CD may try to sync these apps before the operator
 has finished installing and registering its CRDs. This is normal and
-resolves automatically once the operator CSV succeeds and ArgoCD
+resolves automatically once the operator CSV succeeds and Argo CD
 retries the sync.
 
 The imperative framework runs jobs on a 10-minute schedule for:

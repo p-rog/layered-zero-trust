@@ -14,7 +14,7 @@
 
 The ACS deployment in the Layered Zero Trust pattern is implemented using:
 
-- **GitOps**: ArgoCD manages the deployment lifecycle
+- **GitOps**: Argo CD manages the deployment lifecycle
 - **Helm Charts**: Two separate charts for Central and Secured Cluster
 - **Operator-based**: Uses Red Hat's RHACS Operator
 - **Vault Integration**: Secrets stored in HashiCorp Vault
