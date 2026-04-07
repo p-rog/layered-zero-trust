@@ -61,7 +61,7 @@ These components are deployed by default with every ZTVP installation. Component
 
 These components are commented out in `values-hub.yaml` by default. Uncomment the relevant sections to enable them. See [Deploy the pattern](#deploy-the-pattern) for details.
 
-* [Red Hat Quay](https://docs.redhat.com/en/documentation/red_hat_quay/3.15) _(externalized chart)_
+* [Red Hat Quay](https://docs.redhat.com/en/documentation/red_hat_quay) _(externalized chart)_
   * Enables a private OCI image registry within the environment
 * [Multicloud Object Gateway (NooBaa MCG)](https://docs.redhat.com/en/documentation/red_hat_openshift_container_storage/4.8/html/managing_hybrid_and_multicloud_resources/index)
   * Provides S3-compatible object storage for Quay and RHTPA
