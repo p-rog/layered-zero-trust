@@ -15,7 +15,7 @@ Showcases the Zero Trust capabilities across Red Hat's product portfolio in a re
 
 The pattern is structured in layers, each building on the one below it:
 
-* **Validated Patterns Framework** — bootstraps the cluster using OpenShift GitOps (ArgoCD) and the Validated Patterns Operator. All subsequent components are deployed and reconciled by ArgoCD.
+* **Validated Patterns Framework** — bootstraps the cluster using OpenShift GitOps (Argo CD) and the Validated Patterns Operator. All subsequent components are deployed and reconciled by Argo CD.
 * **Layer 0 — Foundations** — establishes a secure cluster baseline: TLS certificate management, compliance scanning, advanced cluster management, and runtime security enforcement.
 * **Layer 1 — Feature Sets** — provisions workload identities (SPIFFE/SPIRE), manages secrets (Vault + ESO), and provides user authentication (Keycloak). Optionally includes a private image registry (Quay + NooBaa).
 * **Layer 2 — Mapping** — deploys the demo application (qtodo) and, optionally, the full secure supply chain pipeline (RHTAS, RHTPA, OpenShift Pipelines).
@@ -30,7 +30,7 @@ Components are grouped by their origin and whether they are always deployed or o
 
 These components are part of every Validated Pattern and are not specific to ZTVP. Their Helm charts live in the [validatedpatterns](https://github.com/validatedpatterns) organization.
 
-* [OpenShift GitOps (ArgoCD)](https://docs.redhat.com/en/documentation/red_hat_openshift_gitops)
+* [OpenShift GitOps (Argo CD)](https://docs.redhat.com/en/documentation/red_hat_openshift_gitops)
   * Deploys and continuously reconciles all pattern components via GitOps
 * [Validated Patterns Operator](https://validatedpatterns.io)
   * Bootstraps the pattern, manages the Hub/Spoke lifecycle, and drives imperative jobs
@@ -44,7 +44,7 @@ These components are deployed by default with every ZTVP installation. Component
     * Continuously scans the cluster against CIS and other security profiles
   * [cert-manager](https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/security_and_compliance/cert-manager-operator-for-red-hat-openshift)
     * Manages TLS certificates for pattern components
-* [Red Hat Advanced Cluster Management (ACM)](https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.14)
+* [Red Hat Advanced Cluster Management (ACM)](https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes)
   * Provides a management control plane in multi-cluster scenarios
 * [Red Hat Advanced Cluster Security (ACS)](https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_security_for_kubernetes)
   * Provides runtime security policy enforcement and image vulnerability scanning
@@ -61,13 +61,13 @@ These components are deployed by default with every ZTVP installation. Component
 
 These components are commented out in `values-hub.yaml` by default. Uncomment the relevant sections to enable them. See [Deploy the pattern](#deploy-the-pattern) for details.
 
-* [Red Hat Quay](https://docs.redhat.com/en/documentation/red_hat_quay/3.15) _(externalized chart)_
+* [Red Hat Quay](https://docs.redhat.com/en/documentation/red_hat_quay) _(externalized chart)_
   * Enables a private OCI image registry within the environment
-* [Multicloud Object Gateway (NooBaa MCG)](https://docs.redhat.com/en/documentation/red_hat_openshift_container_storage/4.8/html/managing_hybrid_and_multicloud_resources/index)
+* [Multicloud Object Gateway (NooBaa MCG)](https://docs.redhat.com/en/documentation/red_hat_openshift_data_foundation/4.20/html/managing_hybrid_and_multicloud_resources/about-the-multicloud-object-gateway)
   * Provides S3-compatible object storage for Quay and RHTPA
 * [Red Hat Trusted Artifact Signer (RHTAS)](https://docs.redhat.com/en/documentation/red_hat_trusted_artifact_signer/1.3)
   * Provides cryptographic signing and verification of software artifacts and container images
-* [Red Hat Trusted Profile Analyzer (RHTPA)](https://docs.redhat.com/en/documentation/red_hat_trusted_profile_analyzer/2.2)
+* [Red Hat Trusted Profile Analyzer (RHTPA)](https://docs.redhat.com/en/documentation/red_hat_trusted_profile_analyzer)
   * Stores and manages _Software Bill of Materials_ (SBOMs) with cross-referencing against CVEs and Security Advisories
 * [Red Hat OpenShift Pipelines](https://docs.redhat.com/en/documentation/red_hat_openshift_pipelines/1.20)
   * Enables the native CI/CD pipeline for the secure supply chain use case
