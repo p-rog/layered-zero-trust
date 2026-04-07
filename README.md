@@ -63,7 +63,7 @@ These components are commented out in `values-hub.yaml` by default. Uncomment th
 
 * [Red Hat Quay](https://docs.redhat.com/en/documentation/red_hat_quay) _(externalized chart)_
   * Enables a private OCI image registry within the environment
-* [Multicloud Object Gateway (NooBaa MCG)](https://docs.redhat.com/en/documentation/red_hat_openshift_container_storage/4.8/html/managing_hybrid_and_multicloud_resources/index)
+* [Multicloud Object Gateway (NooBaa MCG)](https://docs.redhat.com/en/documentation/red_hat_openshift_data_foundation/4.20/html/managing_hybrid_and_multicloud_resources/about-the-multicloud-object-gateway)
   * Provides S3-compatible object storage for Quay and RHTPA
 * [Red Hat Trusted Artifact Signer (RHTAS)](https://docs.redhat.com/en/documentation/red_hat_trusted_artifact_signer/1.3)
   * Provides cryptographic signing and verification of software artifacts and container images
