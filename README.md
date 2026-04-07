@@ -67,7 +67,7 @@ These components are commented out in `values-hub.yaml` by default. Uncomment th
   * Provides S3-compatible object storage for Quay and RHTPA
 * [Red Hat Trusted Artifact Signer (RHTAS)](https://docs.redhat.com/en/documentation/red_hat_trusted_artifact_signer/1.3)
   * Provides cryptographic signing and verification of software artifacts and container images
-* [Red Hat Trusted Profile Analyzer (RHTPA)](https://docs.redhat.com/en/documentation/red_hat_trusted_profile_analyzer/2.2)
+* [Red Hat Trusted Profile Analyzer (RHTPA)](https://docs.redhat.com/en/documentation/red_hat_trusted_profile_analyzer)
   * Stores and manages _Software Bill of Materials_ (SBOMs) with cross-referencing against CVEs and Security Advisories
 * [Red Hat OpenShift Pipelines](https://docs.redhat.com/en/documentation/red_hat_openshift_pipelines/1.20)
   * Enables the native CI/CD pipeline for the secure supply chain use case
