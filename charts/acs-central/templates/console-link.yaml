@@ -8,7 +8,11 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "46"
 spec:
+  {{- if .Values.central.exposure.route.reencrypt.enabled }}
+  href: https://central-reencrypt-{{ .Release.Namespace }}.{{ .Values.global.localClusterDomain }}
+  {{- else }}
   href: https://central-{{ .Release.Namespace }}.{{ .Values.global.localClusterDomain }}
+  {{- end }}
   location: ApplicationMenu
   text: Advanced Cluster Security
   applicationMenu:
