@@ -32,10 +32,12 @@ The CA rotates approximately every 12 hours (half of `ca_ttl`), and the `k8sbund
 2. **SPIRE agents** (DaemonSet) start and attempt to re-attest against the server
 3. Agents still have the **old trust bundle** cached — they do not trust the server's new CA
 4. Agent attestation fails with:
-   ```
+
+   ```bash
    transport: authentication handshake failed: x509svid: could not verify leaf certificate:
    x509: certificate signed by unknown authority
    ```
+
 5. Agents enter `CrashLoopBackOff` or `Error` state
 6. **All SPIFFE-dependent workloads** (e.g., qtodo) cannot obtain SVIDs and remain stuck in init or fail health checks
 
@@ -57,9 +59,9 @@ Check the SPIRE server logs for expired CA slots and new CA generation:
 oc logs spire-server-0 -n zero-trust-workload-identity-manager -c spire-server | grep -E "slot unusable|CA prepared|CA activated"
 ```
 
-Expected output showing expired old slots and a newly activated CA:
+Expected output showing expired old slots and a newly activated CA:  
 
-```
+```bash
 level=warning msg="X509CA slot unusable" error="slot expired" ...
 level=info msg="X509 CA prepared" ...
 level=info msg="X509 CA activated" ...
