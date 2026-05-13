@@ -171,8 +171,8 @@ integration:
     # Container image for the auth provider configuration job
     # Uses OpenShift CLI tools (curl, oc, jq, etc.)
     jobImage:
-      registry: image-registry.openshift-image-registry.svc:5000
-      repository: openshift/cli
+      registry: registry.redhat.io
+      repository: openshift4/ose-cli
       tag: latest
       pullPolicy: IfNotPresent
     # Service account used by jobs (init bundle, auth provider, htpasswd)
