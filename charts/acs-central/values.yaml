@@ -174,7 +174,7 @@ integration:
     # Uses OpenShift CLI tools (curl, oc, jq, etc.)
     jobImage:
       registry: registry.redhat.io
-      repository: openshift4/ose-cli
+      repository: openshift4/ose-cli-rhel9
       tag: latest
       pullPolicy: IfNotPresent
     # Service account used by jobs (init bundle, auth provider, htpasswd)
