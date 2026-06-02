@@ -320,6 +320,8 @@ clusterGroup:
       project: hub
       chart: hashicorp-vault
       chartVersion: 0.1.*
+      extraValueFiles:
+        - /overrides/values-vault-network-policy.yaml
       annotations:
         argocd.argoproj.io/sync-wave: "25"
       # Custom Vault policies for least-privilege access
@@ -401,6 +403,11 @@ clusterGroup:
     #   chartVersion: 0.1.*
     #   annotations:
     #     argocd.argoproj.io/sync-wave: "41"  # Deploy after NooBaa storage backend
+    #   overrides:
+    #   - name: job.image
+    #     value: "registry.redhat.io/openshift4/ose-cli-rhel9:latest"
+    #   - name: job.resources.limits.memory
+    #     value: "512Mi"
     # RHTAS with SPIFFE Integration
     # COMMENTED OUT: Uncomment to enable RHTAS with SPIFFE and Email issuers
     # Depends on: Vault, SPIRE, Keycloak (for Email OIDC issuer if used)
@@ -489,6 +496,8 @@ clusterGroup:
       project: hub
       chart: rhbk
       chartVersion: 0.0.*
+      extraValueFiles:
+        - /overrides/values-keycloak-network-policy.yaml
       annotations:
         argocd.argoproj.io/sync-wave: "35"
       # SPIFFE Identity Provider is enabled by default in the chart.
@@ -546,6 +555,17 @@ clusterGroup:
         # before the supply-chain pipeline runs (avoids ImagePullBackOff on first install)
         # - name: app.seedImage.enabled
         #   value: "true"
+    # Tekton Chains - Configures Tekton Chains for supply chain security
+    # Requires: OpenShift Pipelines operator (openshift-pipelines subscription)
+    # Requires: RHTAS (trusted-artifact-signer) for keyless signing via SPIFFE
+    # Uses a PostSync Job to patch the operator-managed TektonConfig CR
+    # tekton-chains:
+    #   name: tekton-chains
+    #   project: hub
+    #   path: charts/tekton-chains
+    #   annotations:
+    #     argocd.argoproj.io/sync-wave: "47"
+    #
     # Secure Supply Chain - Uncomment to enable (required for Option 1, 2, or 3 registry flows in docs)
     # supply-chain:
     #  name: supply-chain
@@ -594,6 +614,8 @@ clusterGroup:
     #      value: gp3-csi # Example for AWS
         - name: central.exposure.route.enabled
           value: "true"
+        - name: central.exposure.route.reencrypt.host
+          value: "central.{{ $.Values.global.localClusterDomain }}"
         - name: integration.keycloak.enabled
           value: "true"
         - name: integration.keycloak.realm
