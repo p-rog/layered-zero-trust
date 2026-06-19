@@ -18,6 +18,11 @@ In this project, we used the [qtodo](https://github.com/validatedpatterns-demos/
 > * `applications.noobaa-mcg` — NooBaa MCG object storage (required by Quay and RHTPA)
 > * `subscriptions.odf` and `subscriptions.quay-operator` and their namespace entries
 >
+> Additionally, uncomment the following Vault JWT roles in `overrides/values-vault-jwt.yaml` so that RHTPA and the pipeline ServiceAccount can authenticate to Vault via SPIFFE:
+>
+> * `rhtpa` role — allows RHTPA to read its OIDC credentials from Vault
+> * `supply-chain` role — allows the Tekton pipeline ServiceAccount to read git credentials, registry credentials, and RHTPA OIDC secrets from Vault
+>
 > If you prefer to use an external image registry instead of Quay, skip the Quay and NooBaa sections and set the registry parameters in the `supply-chain` application overrides accordingly.
 
 ## Components
@@ -36,13 +41,35 @@ In our demo, we will use a number of additional ZTVP components. These component
 * [Multicloud Object Gateway](https://docs.redhat.com/en/documentation/red_hat_openshift_container_storage/4.8/html/managing_hybrid_and_multicloud_resources/index) is a data service for OpenShift that provides an S3-compatible object storage. In our case, this component is necessary to provide a storage system to Quay.
 * [Red Hat OpenShift Pipelines](https://docs.redhat.com/en/documentation/red_hat_openshift_pipelines/1.20) is a cloud-native CI/CD solution built on the Tekton framework. We will use this product to automate our secure supply chain process, but you could use your own CI/CD solution if one exists.
 
+### Enabling this Use Case
+
+To configure the appropriate values in the [values-hub.yaml](../values-hub.yaml) file, we can be use the [gen-feature-variants script](../scripts/gen-feature-variants.md).
+
+For the Secure Supply Chain use case, the command would be:
+
+```shell
+python3 scripts/gen-feature-variants.py --base values-hub.yaml --features supply-chain --registry-option <id>
+```
+
+If the source repository is **private** (protected), add the `protected-repos` feature:
+
+```shell
+python3 scripts/gen-feature-variants.py --base values-hub.yaml --features supply-chain,protected-repos --registry-option <id>
+```
+
+Where `<id>` is one of the options available in _Bring Your Own (BYO) Container Registry_:
+
+1. Embedded Quay Registry
+2. External Registry
+3. Embedded Internal Registry
+
 ## Bring Your Own (BYO) Container Registry
 
 By default, ZTVP deploys a built-in Red Hat Quay registry. However, you can use your own container registry (e.g., quay.io, Docker Hub, GitHub Container Registry, or a private registry) instead.
 
 ### Configuration Steps
 
-1. **Disable built-in Quay registry** (optional - if not using Quay): Comment out the Quay-related applications in `values-hub.yaml`: `quay-enterprise` namespace, `quay-operator` subscription, and `quay-registry` application.
+1. **Disable built-in Quay registry** (optional - if not using Quay): Comment out the Quay-related applications in `values-hub.yaml`: `quay-enterprise` namespace, `quay-operator` subscription, and `quay-registry` application. Remove the `applications.supply-chain.overrides.quay.enabled` and `applications.supply-chain.overrides.registry.tlsVerify` settings.
 
 2. **Configure registry credentials in Vault** (**BYO registry only**): Per VP rule, add your registry credentials to `~/values-secrets.yaml` (or `~/values-secret.yaml` / `~/values-secret-layered-zero-trust.yaml` per VP lookup order):
 
@@ -53,13 +80,20 @@ By default, ZTVP deploys a built-in Red Hat Quay registry. However, you can use 
 
    Uncomment the `registry-user` secret and replace the placeholder with your registry token or password:
 
+   Store your registry token in a local file:
+
+   ```shell
+   mkdir -p ~/.config/validated-patterns
+   echo -n "your-registry-token" > ~/.config/validated-patterns/registry-token
+   ```
+
    ```yaml
    - name: registry-user
      vaultPrefixes:
        - hub/infra/registry
      fields:
        - name: registry-password
-         value: "REPLACE_WITH_REGISTRY_TOKEN"
+         path: ~/.config/validated-patterns/registry-token
          onMissingValue: error
    ```
 
@@ -213,7 +247,7 @@ resourceHealthChecks:
       return hs
 ```
 
-## Pipeline
+## Automated Secure Supply Chain Pipeline
 
 To build and certify the application, we will use _Red Hat OpenShift Pipelines_.
 
@@ -235,12 +269,49 @@ Once the supply-chain application has synced in ArgoCD, start the pipeline using
    At the bottom we have the **workspaces**. These must be configured manually.
    * For **qtodo-source**, select `PersistentVolumeClaim` and the PVC name is `qtodo-workspace-source`.
    * For **registry-auth-config**, select `Secret` and the name of the secret is `qtodo-registry-auth`.
+   * For **git-auth**, the binding depends on the authentication mode (see [How it works](#how-it-works) for details):
+     * **HTTPS mode**: select `Secret` and the name of the secret is `qtodo-git-credentials`. The `git-clone` ClusterTask's `basic-auth` workspace requires the secret to be provided explicitly; ServiceAccount-level credential injection alone is not sufficient for HTTPS.
+     * **SSH mode**: leave **git-auth** unbound (empty). SSH credentials are injected automatically via the `pipeline` ServiceAccount. Binding the workspace directly causes the `git-clone` ClusterTask's `prepare.sh` to run a recursive `chmod` on the copied secret volume, which fails on the read-only Kubernetes projected volume symlinks.
+   * For **ssl-ca-directory** (HTTPS mode with internal Git hosts only): if `git.sslCABundle.enabled` is `true`, select `ConfigMap` and the name is `ztvp-trusted-ca`. This is only needed when cloning over HTTPS from a Git server behind a corporate or self-signed CA (see [Corporate CA Trust for Internal Git Hosts](#corporate-ca-trust-for-internal-git-hosts)).
 
 5. Press **Start** to finish and run the pipeline.
 
 #### Using CLI
 
 We can also start a pipeline execution using a CLI and the Kubernetes API. We start creating a new `PipelineRun` resource referencing the `qtodo-supply-chain` pipeline. Let's create a new file called `qtodo-pipeline.yaml` and copy this content.
+
+**HTTPS mode** (bind `git-auth` to the `qtodo-git-credentials` secret):
+
+```yaml
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: qtodo-manual-run-
+  namespace: layered-zero-trust-hub
+spec:
+  pipelineRef:
+    name: qtodo-supply-chain
+  taskRunTemplate:
+    serviceAccountName: pipeline
+  timeouts:
+    pipeline: 1h0m0s
+  workspaces:
+    - name: qtodo-source
+      persistentVolumeClaim:
+        claimName: qtodo-workspace-source
+    - name: registry-auth-config
+      secret:
+        secretName: qtodo-registry-auth
+    - name: git-auth
+      secret:
+        secretName: qtodo-git-credentials
+    # Add this workspace when git.sslCABundle.enabled is true (internal Git hosts):
+    # - name: ssl-ca-directory
+    #   configMap:
+    #     name: ztvp-trusted-ca
+```
+
+**SSH mode** (leave `git-auth` unbound):
 
 ```yaml
 apiVersion: tekton.dev/v1
@@ -265,6 +336,8 @@ spec:
 ```
 
 As was described previously, verify the values associated with the PVC storage and registry configuration.
+
+> **Note**: The `git-auth` workspace binding differs between authentication modes. In **HTTPS mode**, the `qtodo-git-credentials` secret must be bound explicitly -- ServiceAccount-level credential injection alone is not sufficient for the `git-clone` ClusterTask's `basic-auth` workspace. In **SSH mode**, the workspace must be left **unbound**; SSH credentials are injected automatically through the `pipeline` ServiceAccount. Binding the `git-auth` workspace in SSH mode causes the `git-clone` ClusterTask's `prepare.sh` to run a recursive `chmod` on the copied secret volume, which fails on the read-only Kubernetes projected volume symlinks.
 
 Using the previously created definition, start a new execution of the pipeline using `oc` CLI:
 
@@ -291,10 +364,174 @@ oc get taskruns -n layered-zero-trust-hub -l tekton.dev/pipelineRun=<pipelinerun
 oc logs -n layered-zero-trust-hub -l tekton.dev/pipelineRun=<pipelinerun-name>,tekton.dev/pipelineTask=<task-name>
 ```
 
+### Protected Repositories
+
+By default the pipeline clones the qtodo source from a **public** GitHub repository. If your source code lives in a private (protected) repository, enable the Git credentials feature so the `git-clone` task can authenticate.
+
+Two authentication modes are supported:
+
+| Mode | URL format | Vault fields | Secret type |
+| ----- | ------------------------------------ | ----------------------------------- | ---------------------- |
+| HTTPS | `https://github.com/org/repo.git` | `username` + `password` (PAT) | Opaque (basic-auth) |
+| SSH | `git@github.com:org/repo.git` | `ssh-privatekey` + `known_hosts` | kubernetes.io/ssh-auth |
+
+When using the `gen-feature-variants.py` script with `--git-repo`, the auth mode is auto-detected from the URL scheme.
+
+#### 1. Store Git credentials in Vault
+
+Uncomment the `git-credentials` secret in your local `~/values-secret.yaml` (copied from `values-secret.yaml.template`). Choose **one** of the two options:
+
+**Option A -- HTTPS basic auth** (username + Personal Access Token):
+
+Store your credentials in local files to avoid plaintext in YAML:
+
+```shell
+mkdir -p ~/.config/validated-patterns
+echo -n "your-git-username" > ~/.config/validated-patterns/git-username
+echo -n "your-personal-access-token" > ~/.config/validated-patterns/git-token
+```
+
+```yaml
+- name: git-credentials
+  vaultPrefixes:
+  - hub/supply-chain
+  fields:
+  - name: username
+    path: ~/.config/validated-patterns/git-username
+    onMissingValue: error
+  - name: password
+    path: ~/.config/validated-patterns/git-token
+    onMissingValue: error
+```
+
+**Option B -- SSH key auth**:
+
+```yaml
+- name: git-credentials
+  vaultPrefixes:
+  - hub/supply-chain
+  fields:
+  - name: ssh-privatekey
+    path: ~/.ssh/id_ed25519_ztvp   # or id_rsa, id_ecdsa, etc.
+  - name: known_hosts
+    path: ~/.ssh/known_hosts_github
+```
+
+Generate a passwordless SSH key pair (if you don't already have one):
+
+```shell
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_ztvp -N ""
+```
+
+The key **must not** be password-protected -- Tekton cannot prompt for a passphrase at runtime.
+
+Generate the `known_hosts` file for your Git host:
+
+```shell
+ssh-keyscan github.com > ~/.ssh/known_hosts_github
+```
+
+Then load the secret into Vault: `./pattern.sh make load-secrets`.
+
+#### 2. Enable Git credentials in the supply-chain overrides
+
+**Preferred: use the generator.** Add `protected-repos` to the features list and provide your private repository URL with `--git-repo`. The generator auto-detects the auth mode and sets all overrides (host, authType, repository) automatically:
+
+```shell
+# HTTPS
+python3 scripts/gen-feature-variants.py \
+  --features supply-chain,protected-repos \
+  --registry-option <id> \
+  --git-repo https://github.com/your-org/qtodo.git
+
+# SSH
+python3 scripts/gen-feature-variants.py \
+  --features supply-chain,protected-repos \
+  --registry-option <id> \
+  --git-repo git@github.com:your-org/qtodo.git
+```
+
+**Manual configuration.** Add the following overrides to the `supply-chain` application in `values-hub.yaml`:
+
+```yaml
+- name: git.credentials.enabled
+  value: "true"
+- name: git.credentials.authType
+  value: "https"                    # or "ssh"
+- name: git.credentials.host
+  value: "https://github.com"      # SSH: "github.com" (no scheme)
+- name: git.credentials.vaultPath
+  value: "secret/data/hub/supply-chain/git-credentials"
+```
+
+#### 3. Point the pipeline at your private repository
+
+When using the generator with `--git-repo`, the `qtodo.repository` override is set automatically in the generated `values-hub.yaml`. If you are configuring manually, add this override to the `supply-chain` application:
+
+```yaml
+- name: qtodo.repository
+  value: "https://github.com/your-org/qtodo.git"   # or SSH URL (git@github.com:your-org/qtodo.git)
+```
+
+#### How it works
+
+When `git.credentials.enabled` is `true`:
+
+* An `ExternalSecret` (`qtodo-git-credentials`) pulls the credentials from Vault and creates a secret annotated with `tekton.dev/git-0` pointing to the configured host.
+  * **HTTPS mode**: creates an `Opaque` secret with `.git-credentials` and `.gitconfig` files.
+  * **SSH mode**: creates a `kubernetes.io/ssh-auth` secret with `ssh-privatekey` and `known_hosts` entries.
+* The `pipeline` ServiceAccount lists the secret (see `pipeline-sa.yaml`). Tekton's credential initialization automatically injects the credentials into task containers -- `.gitconfig` and `.git-credentials` for HTTPS, or `~/.ssh/config`, `~/.ssh/id_*`, and `~/.ssh/known_hosts` for SSH.
+* The `git-auth` workspace is declared in the pipeline as `optional: true`. How it should be bound depends on the authentication mode:
+  * **HTTPS mode**: the `git-auth` workspace **must** be bound to the `qtodo-git-credentials` secret. ServiceAccount-level credential injection alone is not sufficient -- without an explicit workspace binding, the `git-clone` ClusterTask cannot access the protected repository.
+  * **SSH mode**: the `git-auth` workspace must be left **unbound**. SSH credentials are injected automatically via the ServiceAccount. Binding the workspace triggers the `git-clone` ClusterTask's `prepare.sh`, which runs a recursive `chmod` on the copied secret volume; this fails on the read-only Kubernetes projected volume symlinks and aborts the step.
+* The Vault policy `hub-supply-chain-jwt-secret` grants read access to `secret/data/hub/supply-chain/*` for the pipeline's SPIFFE identity.
+
+> [!NOTE]
+> If your internal Git server also uses a corporate or self-signed CA, see [Corporate CA Trust for Internal Git Hosts](#corporate-ca-trust-for-internal-git-hosts) to configure TLS trust.
+
+### Corporate CA Trust for Internal Git Hosts
+
+This section applies whenever the pipeline clones from a Git server whose TLS certificate is signed by a corporate or self-signed CA, regardless of whether the repository is private. It is only relevant for HTTPS clones; SSH connections do not use TLS certificate verification.
+
+> [!NOTE]
+> Public Git hosts (github.com, gitlab.com) use publicly trusted certificates and do not require this. If the repository is also private, combine these settings with the [Protected Repositories](#protected-repositories) configuration above.
+
+When a repository is hosted on an internal Git server (e.g. GitLab behind a corporate CA), the `git-clone` task will fail with `SSL certificate problem: self-signed certificate in certificate chain` because the pod does not trust the corporate CA.
+
+The `ztvp-certificates` chart already extracts and distributes the cluster's CA bundle (ingress, service, and any custom/corporate CAs). When the `supply-chain` feature is enabled, the `ztvp-trusted-ca` ConfigMap is automatically distributed to the pipeline namespace (`layered-zero-trust-hub`) via ACM policy.
+
+To make the `git-clone` task use this CA bundle, enable the SSL CA bundle mount in the `supply-chain` application overrides:
+
+```yaml
+- name: git.sslCABundle.enabled
+  value: "true"
+```
+
+This binds the `ztvp-trusted-ca` ConfigMap as the `ssl-ca-directory` workspace on the `git-clone` task and sets the `CRT_FILENAME` parameter to `tls-ca-bundle.pem` (matching the key in the ConfigMap). The upstream `git-clone` ClusterTask uses this file to set `GIT_SSL_CAPATH`, so TLS verification succeeds against internal Git servers.
+
+The corporate CA must be included in the `ztvp-trusted-ca` bundle. The easiest way is to use **automatic remote host extraction** -- add the Git host to `customCA.remoteHosts` in the `ztvp-certificates` overrides:
+
+```yaml
+# ztvp-certificates overrides in values-hub.yaml
+- name: customCA.remoteHosts[0]
+  value: "gitlab.internal.example.com"
+```
+
+The `ztvp-certificates` extraction Job will connect to the host on port 443, extract the full CA chain from the TLS handshake (no authentication needed), and merge it into the CA bundle. The CronJob keeps it fresh automatically.
+
+Alternatively, you can provide the CA certificate manually via `customCA.secretRef` or `customCA.additionalCertificates`. See the [ztvp-certificates documentation](./ztvp-certificates.md) for details.
+
+### Init task (pre-flight image check)
+
+The pipeline includes an `init` task that runs before `git-clone`. It uses `skopeo inspect` to check whether the target image already exists in the registry. If the image exists (and `rebuild` is not set to `"true"`), the pipeline skips the build. This avoids unnecessary rebuilds and is modeled after the [RHTAP sample pipelines](https://github.com/konflux-ci/build-definitions).
+
+The pipeline also emits Tekton Chains provenance results (`CHAINS-GIT_URL`, `CHAINS-GIT_COMMIT`, `IMAGE_URL`, `IMAGE_DIGEST`) so that Tekton Chains can automatically generate and sign provenance attestations.
+
 ### Pipeline tasks
 
 The pipeline we have prepared has the following steps:
 
+* **init**. Checks whether the target image already exists in the registry. Gates the build with a `when` condition.
 * **qtodo-clone-repository**. Clones the `qtodo` repository.
 * **qtodo-build-artifact**. Builds an _uber-jar_ of `qtodo` application.
 * **qtodo-sign-artifact**. Signs the JAR file generated during the build process.

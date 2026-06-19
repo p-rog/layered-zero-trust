@@ -2,11 +2,11 @@
 # Depends on: storage (ODF + NooBaa MCG for backend)
 clusterGroup:
   namespaces:
-    - quay-enterprise:
-        annotations:
-          argocd.argoproj.io/sync-wave: "32"
-        labels:
-          openshift.io/cluster-monitoring: "true"
+    quay-enterprise:
+      annotations:
+        argocd.argoproj.io/sync-wave: "32"
+      labels:
+        openshift.io/cluster-monitoring: "true"
 
   subscriptions:
     quay-operator:
@@ -25,3 +25,8 @@ clusterGroup:
       chartVersion: 0.1.*
       annotations:
         argocd.argoproj.io/sync-wave: "41"
+      overrides:
+      - name: job.image
+        value: "registry.redhat.io/openshift4/ose-cli-rhel9:latest"
+      - name: job.resources.limits.memory
+        value: "512Mi"
