@@ -17,6 +17,7 @@ data:
   QUARKUS_OIDC_CREDENTIALS_JWT_TOKEN_PATH: "{{ .Values.app.oidc.clientAssertion.jwtTokenPath }}"
 {{- if eq .Values.app.oidc.provider "entraid" }}
   QUARKUS_OIDC_CREDENTIALS_JWT_AUDIENCE: "{{ include "qtodo.jwt.audience" . }}"
+  QTODO_OIDC_INJECT_CLIENT_ID: "true"
 {{- end }}
 {{- end }}
 {{- end }}
