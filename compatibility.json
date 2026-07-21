@@ -1,0 +1,13 @@
+{
+  "pattern": "layered-zero-trust",
+  "compatibility": {
+    "ocp": {
+      "supported": ["4.20", "4.21"],
+      "tested": ["4.20", "4.21"],
+      "known_issues": {
+        "4.22": "ZTWIM operator (openshift-zero-trust-workload-identity-manager) is not available in redhat-marketplace:v4.22. ACM channel release-2.15 is not available for OCP 4.22 (requires release-2.16).",
+        "4.19": "Not tested. Operator channels may not align."
+      }
+    }
+  }
+}

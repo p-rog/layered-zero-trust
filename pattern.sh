@@ -15,6 +15,77 @@ function version {
     echo "$1" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'
 }
 
+function check_compatibility {
+    if [ "${SKIP_COMPATIBILITY_CHECK:-}" = "true" ]; then
+        return 0
+    fi
+
+    local compat_file="$(pwd -P)/compatibility.json"
+    if [ ! -f "$compat_file" ]; then
+        return 0
+    fi
+
+    local cluster_version=""
+    if command -v oc &>/dev/null; then
+        cluster_version=$(oc get clusterversion version \
+            -o jsonpath='{.status.desired.version}' 2>/dev/null) || true
+    elif command -v kubectl &>/dev/null; then
+        cluster_version=$(kubectl get clusterversion version \
+            -o jsonpath='{.status.desired.version}' 2>/dev/null) || true
+    fi
+
+    if [ -z "$cluster_version" ]; then
+        echo "INFO: Could not detect OCP cluster version. Skipping compatibility check."
+        return 0
+    fi
+
+    local ocp_minor="${cluster_version%.*}"
+
+    if ! command -v python3 &>/dev/null; then
+        echo "INFO: python3 not found. Skipping compatibility check."
+        return 0
+    fi
+
+    if python3 - "$compat_file" "$ocp_minor" "$cluster_version" <<'PYEOF'
+import json, sys
+
+compat_file, ocp_minor, cluster_version = sys.argv[1], sys.argv[2], sys.argv[3]
+
+with open(compat_file) as f:
+    data = json.load(f)
+
+ocp = data.get("compatibility", {}).get("ocp", {})
+supported = ocp.get("supported", [])
+
+if ocp_minor in supported:
+    print(f"\033[32m✓ Compatibility check passed: OCP {cluster_version} (stream {ocp_minor}) is supported.\033[0m")
+    sys.exit(0)
+else:
+    print(f"\n\033[1;33m{'=' * 72}")
+    print(f"  WARNING: OCP {cluster_version} (stream {ocp_minor}) is NOT supported")
+    print(f"{'=' * 72}\033[0m\n")
+    print(f"  Supported OCP versions: {', '.join(supported)}")
+    issues = ocp.get("known_issues", {}).get(ocp_minor, "")
+    if issues:
+        print(f"\n  Known issues for {ocp_minor}:")
+        for line in issues.split(". "):
+            line = line.strip().rstrip(".")
+            if line:
+                print(f"    - {line}")
+    print()
+    sys.exit(1)
+PYEOF
+    then
+        return 0
+    else
+        read -r -p "Do you want to proceed with an unsupported OCP version? [y/N] " response
+        case "$response" in
+            [Yy]*) echo "Proceeding with unsupported OCP version..."; return 0 ;;
+            *) echo "Installation aborted."; exit 1 ;;
+        esac
+    fi
+}
+
 if [ -z "${PATTERN_UTILITY_CONTAINER:-}" ]; then
 	PATTERN_UTILITY_CONTAINER="quay.io/validatedpatterns/utility-container"
 fi
@@ -95,6 +166,8 @@ fi
 # Copy Kubeconfig from current environment. The utilities will pick up ~/.kube/config if set so it's not mandatory
 # $HOME is mounted as itself for any files that are referenced with absolute paths
 # $HOME is mounted to /root because the UID in the container is 0 and that's where SSH looks for credentials
+
+check_compatibility
 
 podman run -it --rm --pull=newer \
     --security-opt label=disable \
