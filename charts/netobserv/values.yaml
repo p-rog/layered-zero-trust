@@ -5,7 +5,8 @@ loki:
   namespace: netobserv-loki
   name: loki
   size: 1x.extra-small
-  storageClassName: gp3-csi
+  # Empty: use the cluster default StorageClass (or set explicitly)
+  storageClassName: ""
   storageSecretName: loki-s3
   objectBucketClaim:
     name: netobserv-loki-obc
